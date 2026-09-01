@@ -69,6 +69,7 @@
       <h2 id="cardChassis">—</h2>
       <div id="cardBarcode" class="barcode"></div>
       <div class="location" id="cardLocation">—</div>
+      <div id="cardConflicts" class="card-conflicts hidden"></div>
       <div id="cardObservation" class="observation"></div>
       <div class="card-actions">
         <button id="cardHide" class="primary">Ocultar</button>
@@ -115,6 +116,8 @@
         load("link",{rel:"stylesheet",href:"css/estilos.css?v="+encodeURIComponent(window.APP_VERSION)});
         const xlsx=document.createElement("script");
         xlsx.src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js";
+        const exceljs=document.createElement("script");
+        exceljs.src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js";
         const barcode=document.createElement("script");
         barcode.src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js";
 
@@ -122,6 +125,12 @@
           xlsx.onload=resolve;
           xlsx.onerror=()=>reject(new Error("No se pudo cargar Excel."));
           document.body.appendChild(xlsx);
+        });
+
+        await new Promise((resolve,reject)=>{
+          exceljs.onload=resolve;
+          exceljs.onerror=()=>reject(new Error("No se pudo cargar el exportador de Excel."));
+          document.body.appendChild(exceljs);
         });
 
         await new Promise((resolve,reject)=>{

@@ -1,5 +1,5 @@
 import { readWorkbook } from "./modules/excel.js";
-import { validate } from "./modules/validator.js";
+import { validate, refreshConflictInfo } from "./modules/validator.js";
 import { barcodeSvg } from "./modules/barcode.js";
 import { exportExcel } from "./modules/exporter.js";
 
@@ -28,9 +28,12 @@ function restoreWorkingState(){
     const parsed=JSON.parse(saved);
     if(!Array.isArray(parsed) || !parsed.length) return false;
 
-    rows=parsed;
     const savedHidden=JSON.parse(localStorage.getItem(HIDDEN_KEY)||"[]");
-    hidden=new Set(Array.isArray(savedHidden) ? savedHidden : []);
+    const restored=dedupeCrossFileExactRecordsWithHidden(parsed,Array.isArray(savedHidden)?savedHidden:[]);
+    rows=restored.rows;
+    rows.forEach(cleanGeneratedObservation);
+    refreshConflictInfo(rows);
+    hidden=new Set(restored.hidden);
 
     const savedFiles=JSON.parse(localStorage.getItem(FILES_KEY)||"[]");
     sourceFileNames=Array.isArray(savedFiles) ? savedFiles : [];
@@ -143,7 +146,7 @@ async function unify(){
     for(const f of files) all.push(...await readWorkbook(f));
     if(!all.length) throw new Error("No se encontró una columna de Chasis válida en los archivos.");
 
-    rows=validate(all);
+    rows=validate(dedupeCrossFileExactRecords(all));
     hidden.clear();
     sourceFileNames=files.map(f=>f.name);
     saveWorkingState();
@@ -178,23 +181,44 @@ function filtered(){
   const b=$("filterBloque").value;
   const e=$("filterEstado").value;
 
-  return rows.map((r,i)=>({...r,_i:i})).filter(r=>
+  const data=rows.map((r,i)=>({...r,_i:i})).filter(r=>
     !hidden.has(r._i) &&
     (!q||String(r.chasis).toLowerCase().includes(q)) &&
     (!p||r.playa===p) &&
     (!b||r.bloque===b) &&
     (!e||r.estado===e)
   );
-}
 
+  // Los conflictos quedan agrupados por sus relaciones; los OK conservan su orden.
+  return data.sort((a,b)=>{
+    const ga=a._groupId||Number.MAX_SAFE_INTEGER;
+    const gb=b._groupId||Number.MAX_SAFE_INTEGER;
+    if(ga!==gb) return ga-gb;
+    return a._i-b._i;
+  });
+}
 function render(){
   const data=filtered();
   const tbody=$("dataTable").querySelector("tbody");
   tbody.innerHTML="";
 
-  data.forEach(r=>{
+  let lastGroup=null;
+  data.forEach((r,displayPos)=>{
+    if(r._groupId && r._groupId!==lastGroup){
+      const groupRow=document.createElement("tr");
+      groupRow.className="conflict-group-row";
+      const cell=document.createElement("td");
+      cell.colSpan=8;
+      cell.textContent=`Grupo de conflicto ${r._groupId}`;
+      groupRow.appendChild(cell);
+      tbody.appendChild(groupRow);
+      lastGroup=r._groupId;
+    }
+
     const tr=document.createElement("tr");
     if(r.estado==="REVISAR") tr.className="conflict";
+    const conflicts=(r._conflicts||[]).map(c=>c.text);
+    const title=conflicts.join("\n");
 
     tr.innerHTML=`
       <td class="chassis">
@@ -206,10 +230,19 @@ function render(){
       <td>${escapeHtml(r.bloque)}</td>
       <td>${escapeHtml(r.carril)}</td>
       <td>${escapeHtml(r.posicion)}</td>
-      <td>${escapeHtml(r.ubicacion)}</td>
+      <td class="location-cell">${escapeHtml(r.ubicacion)}</td>
       <td>${escapeHtml(r.observacion)}</td>
       <td class="${r.estado==="OK"?"status-ok":"status-review"}">${r.estado}</td>
     `;
+
+    if(title){
+      tr.title=title;
+      const badge=document.createElement("span");
+      badge.className="conflict-badge";
+      badge.textContent="⚠";
+      badge.title=title;
+      tr.querySelector(".chassis").prepend(badge);
+    }
 
     tr.querySelector(".chassis-button").addEventListener("click",e=>{
       e.preventDefault();
@@ -225,7 +258,6 @@ function render(){
   $("hiddenCount").textContent=hidden.size;
   $("conflictCount").textContent=rows.filter(r=>r.estado==="REVISAR").length;
 }
-
 function nextVisibleIndex(direction){
   const list=filtered();
   if(!list.length) return -1;
@@ -235,6 +267,87 @@ function nextVisibleIndex(direction){
 
   pos=(pos+direction+list.length)%list.length;
   return list[pos]._i;
+}
+
+function renderCardConflicts(r){
+  const box=$("cardConflicts");
+  box.innerHTML="";
+  const conflicts=r._conflicts||[];
+  if(!conflicts.length){
+    box.classList.add("hidden");
+    return;
+  }
+  box.classList.remove("hidden");
+  const title=document.createElement("div");
+  title.className="conflict-title";
+  title.textContent="⚠ Conflictos detectados";
+  box.appendChild(title);
+  conflicts.forEach(c=>{
+    const item=document.createElement("div");
+    item.className="conflict-item";
+    item.textContent=c.text;
+    box.appendChild(item);
+  });
+}
+
+function cleanGeneratedObservation(row){
+  const generated=new Set(["chasis duplicado","ubicaciones diferentes","comparten la misma ubicacion"]);
+  const parts=String(row.observacion||"").split("|").map(x=>x.trim()).filter(Boolean);
+  row.observacion=parts.filter(x=>!generated.has(x.toLowerCase())).join(" | ");
+}
+
+function locationKeyForDedup(r){
+  const literal=String(r.ubicacion||"").trim().toUpperCase();
+  if(literal) return literal;
+  return [r.playa,r.bloque,r.carril,r.posicion].map(x=>String(x||"").trim().toUpperCase()).join("|");
+}
+
+function dedupeCrossFileExactRecords(list){
+  const result=[];
+  const seen=new Map();
+  for(const row of list){
+    const key=`${String(row.chasis||"").trim().toUpperCase()}|${locationKeyForDedup(row)}`;
+    const source=String(row.source||"");
+    const previous=seen.get(key);
+    if(previous && previous.source && source && previous.source!==source){
+      if(row.observacion && row.observacion!==previous.observacion){
+        previous.observacion=previous.observacion ? `${previous.observacion} | ${row.observacion}` : row.observacion;
+      }
+      continue;
+    }
+    result.push(row);
+    if(!previous) seen.set(key,row);
+  }
+  result.forEach(cleanGeneratedObservation);
+  return result;
+}
+
+function dedupeCrossFileExactRecordsWithHidden(list,hiddenIndexes){
+  const result=[];
+  const hiddenSet=new Set(hiddenIndexes||[]);
+  const seen=new Map();
+  const newHidden=[];
+  list.forEach((row,index)=>{
+    const key=`${String(row.chasis||"").trim().toUpperCase()}|${locationKeyForDedup(row)}`;
+    const source=String(row.source||"");
+    const previous=seen.get(key);
+    if(previous && previous.source && source && previous.source!==source){
+      if(row.observacion && row.observacion!==previous.observacion){
+        previous.observacion=previous.observacion ? `${previous.observacion} | ${row.observacion}` : row.observacion;
+      }
+      if(hiddenSet.has(index)){
+        const keptIndex=result.indexOf(previous);
+        if(keptIndex>=0) newHidden.push(keptIndex);
+      }
+      return;
+    }
+    const newIndex=result.length;
+    result.push(row);
+    if(hiddenSet.has(index)) newHidden.push(newIndex);
+    if(!previous) seen.set(key,row);
+  });
+  result.forEach(cleanGeneratedObservation);
+  return {rows:result,hidden:[...new Set(newHidden)]};
 }
 
 function openCard(i){
@@ -247,6 +360,7 @@ function openCard(i){
   $("cardLocation").textContent=
     [r.playa,r.bloque,r.carril,r.posicion].filter(Boolean).join(" - ") || "Sin ubicación";
   $("cardObservation").textContent=r.observacion||"";
+  renderCardConflicts(r);
 
   const barcodeBox=$("cardBarcode");
   barcodeBox.innerHTML="";
@@ -292,6 +406,7 @@ function actOnCurrent(action){
     );
   }
 
+  refreshConflictInfo(rows);
   saveWorkingState();
 
   const next=filtered();

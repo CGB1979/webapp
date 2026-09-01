@@ -4,15 +4,17 @@ import { barcodeSvg } from "./modules/barcode.js";
 import { exportExcel } from "./modules/exporter.js";
 
 const $=id=>document.getElementById(id);
-let rows=[], hidden=new Set(), currentIndex=-1, files=[];
+let rows=[], hidden=new Set(), currentIndex=-1, files=[], sourceFileNames=[];
 
 const DATA_KEY="gestion-playas-working-data";
 const HIDDEN_KEY="gestion-playas-hidden-data";
+const FILES_KEY="gestion-playas-source-files";
 
 function saveWorkingState(){
   try{
     localStorage.setItem(DATA_KEY,JSON.stringify(rows));
     localStorage.setItem(HIDDEN_KEY,JSON.stringify([...hidden]));
+    localStorage.setItem(FILES_KEY,JSON.stringify(sourceFileNames));
   }catch(err){
     console.warn("No se pudo guardar el avance local:",err);
   }
@@ -29,6 +31,9 @@ function restoreWorkingState(){
     rows=parsed;
     const savedHidden=JSON.parse(localStorage.getItem(HIDDEN_KEY)||"[]");
     hidden=new Set(Array.isArray(savedHidden) ? savedHidden : []);
+
+    const savedFiles=JSON.parse(localStorage.getItem(FILES_KEY)||"[]");
+    sourceFileNames=Array.isArray(savedFiles) ? savedFiles : [];
 
     $("dropzone").classList.add("hidden");
     $("workspace").classList.remove("hidden");
@@ -98,7 +103,15 @@ $("filterBloque").onchange=render;
 $("filterEstado").onchange=render;
 $("btnShowHidden").onclick=()=>{
   hidden.clear();
+  saveWorkingState();
   render();
+};
+
+$("btnClearAll").onclick=confirmClearAll;
+$("clearCancel").onclick=closeClearAllModal;
+$("clearConfirm").onclick=clearAllWorkingData;
+$("clearAllOverlay").onclick=e=>{
+  if(e.target===$("clearAllOverlay")) closeClearAllModal();
 };
 
 $("cardClose").onclick=closeCard;
@@ -110,7 +123,10 @@ $("cardOverlay").onclick=e=>{
   if(e.target===$("cardOverlay")) closeCard();
 };
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape") closeCard();
+  if(e.key==="Escape"){
+    closeCard();
+    closeClearAllModal();
+  }
   if(e.key==="ArrowLeft" && !$("cardOverlay").classList.contains("hidden")) openCard(nextVisibleIndex(-1));
   if(e.key==="ArrowRight" && !$("cardOverlay").classList.contains("hidden")) openCard(nextVisibleIndex(1));
 });
@@ -129,6 +145,7 @@ async function unify(){
 
     rows=validate(all);
     hidden.clear();
+    sourceFileNames=files.map(f=>f.name);
     saveWorkingState();
 
     $("dropzone").classList.add("hidden");
@@ -286,6 +303,59 @@ function actOnCurrent(action){
   }else{
     closeCard();
   }
+}
+
+function confirmClearAll(){
+  if(!rows.length) return;
+
+  const count=sourceFileNames.length;
+  const noun=count===1 ? "planilla" : "planillas";
+  const verb=count===1 ? "cargada" : "cargadas";
+
+  $("clearAllText").textContent=
+    `Vas a borrar todos los avances realizados sobre la última ${noun} ${verb}. `+
+    `Esto eliminará los vehículos ocultos, el progreso de revisión y los datos `+
+    `guardados localmente de ${count===1 ? "esa planilla" : "esas planillas"}. `+
+    `Los archivos originales de tu computadora no se eliminarán.`;
+
+  $("clearAllOverlay").classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  requestAnimationFrame(()=>$("clearCancel").focus());
+}
+
+function closeClearAllModal(){
+  $("clearAllOverlay").classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
+function clearAllWorkingData(){
+  localStorage.removeItem(DATA_KEY);
+  localStorage.removeItem(HIDDEN_KEY);
+  localStorage.removeItem(FILES_KEY);
+
+  rows=[];
+  hidden.clear();
+  sourceFileNames=[];
+  currentIndex=-1;
+  files=[];
+
+  closeClearAllModal();
+
+  $("workspace").classList.add("hidden");
+  $("dropzone").classList.remove("hidden");
+  $("fileList").innerHTML="";
+  $("fileInput").value="";
+  $("btnUnificar").disabled=true;
+  $("btnBarcode").disabled=true;
+  $("btnDownload").disabled=true;
+
+  $("searchInput").value="";
+  $("filterPlaya").innerHTML='<option value="">Playa: todas</option>';
+  $("filterBloque").innerHTML='<option value="">Bloque: todos</option>';
+  $("filterEstado").value="";
+
+  render();
+  toast("Todos los avances fueron borrados.");
 }
 
 function toast(msg,error=false){

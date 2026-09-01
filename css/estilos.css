@@ -6,3 +6,12 @@
 body.modal-open{overflow:hidden}
 .barcode-error{padding:16px;border-radius:8px;background:#fef2f2;color:#991b1b;font-size:13px}
 .toast-error{background:#991b1b}
+
+.danger-outline{border:1px solid #dc2626!important;color:#dc2626!important;background:#fff!important}
+.danger-outline:hover{background:#fef2f2!important}
+.confirm-card{width:min(500px,calc(100vw - 40px));background:#fff;border-radius:16px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.28);text-align:center}
+.confirm-icon{width:46px;height:46px;margin:0 auto 14px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fef2f2;color:#dc2626;font-size:27px;font-weight:800}
+.confirm-card h2{margin:0 0 12px;font-size:22px;color:#111827}
+.confirm-card p{margin:0 auto 24px;max-width:430px;color:#4b5563;line-height:1.55;font-size:14px}
+.confirm-actions{display:flex;justify-content:center;gap:10px}
+.confirm-actions button{min-width:120px}

@@ -356,10 +356,9 @@ function openCard(i){
   currentIndex=i;
   const r=rows[i];
 
-  $("cardChassis").textContent=r.chasis;
-  $("cardLocation").textContent=
-    [r.playa,r.bloque,r.carril,r.posicion].filter(Boolean).join(" - ") || "Sin ubicación";
-  $("cardObservation").textContent=r.observacion||"";
+$("cardChassis").textContent=r.chasis;
+$("cardLocation").textContent=r.ubicacion || "Sin ubicación";
+$("cardObservation").textContent=r.observacion||"";
   renderCardConflicts(r);
 
   const barcodeBox=$("cardBarcode");

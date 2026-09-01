@@ -1,40 +1,31 @@
 function ensureJsBarcode(){
   if(typeof window.JsBarcode!=="function"){
-    throw new Error("No se pudo cargar el generador de códigos de barras. Verificá la conexión a Internet y recargá la página.");
+    throw new Error("No se pudo cargar el generador de códigos de barras.");
   }
 }
 
 export function barcodeSvg(value){
   ensureJsBarcode();
 
-  const holder=document.createElement("div");
-  holder.style.position="absolute";
-  holder.style.left="-99999px";
-  holder.style.top="-99999px";
-  document.body.appendChild(holder);
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("xmlns","http://www.w3.org/2000/svg");
+  svg.setAttribute("role","img");
+  svg.setAttribute("aria-label",`Código de barras ${value}`);
 
-  try{
-    window.JsBarcode(holder,String(value),{
-      format:"CODE128",
-      displayValue:true,
-      fontSize:13,
-      height:60,
-      width:2,
-      margin:4,
-      textMargin:4
-    });
+  window.JsBarcode(svg,String(value),{
+    format:"CODE128",
+    displayValue:true,
+    fontSize:14,
+    height:65,
+    width:2,
+    margin:8,
+    textMargin:5
+  });
 
-    const svg=holder.querySelector("svg");
-    if(!svg) throw new Error("No se pudo generar el código de barras.");
-
-    svg.setAttribute("role","img");
-    svg.setAttribute("aria-label",`Código de barras ${value}`);
-    svg.style.maxWidth="100%";
-    svg.style.height="auto";
-    return svg.cloneNode(true);
-  }finally{
-    holder.remove();
-  }
+  svg.style.display="block";
+  svg.style.maxWidth="100%";
+  svg.style.height="auto";
+  return svg;
 }
 
 export function barcodeDataUrl(value){
@@ -44,11 +35,11 @@ export function barcodeDataUrl(value){
   window.JsBarcode(canvas,String(value),{
     format:"CODE128",
     displayValue:true,
-    fontSize:13,
-    height:60,
+    fontSize:14,
+    height:65,
     width:2,
-    margin:4,
-    textMargin:4
+    margin:8,
+    textMargin:5
   });
   return canvas.toDataURL("image/png");
 }

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>Gestión de Playas</title>
+
+    <link rel="stylesheet" href="css/estilos.css?v=1">
+
+    <script>
+        (async function () {
+            const versionUrl = "js/version.js?t=" + Date.now();
+
+            try {
+                const response = await fetch(versionUrl, {
+                    cache: "no-store"
+                });
+
+                if (!response.ok) {
+                    throw new Error("No se pudo obtener version.js");
+                }
+
+                const versionCode = await response.text();
+
+                const scriptVersion = document.createElement("script");
+                scriptVersion.textContent = versionCode;
+                document.head.appendChild(scriptVersion);
+
+                const version = window.APP_VERSION || Date.now().toString();
+
+                const scripts = [
+                    "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js",
+                    "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js",
+                    "https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"
+                ];
+
+                for (const src of scripts) {
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement("script");
+                        script.src = src;
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    });
+                }
+
+                const appScript = document.createElement("script");
+                appScript.src = "js/app.js?v=" + encodeURIComponent(version);
+                appScript.defer = true;
+                document.head.appendChild(appScript);
+
+            } catch (error) {
+                console.error(error);
+
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.innerHTML = `
+                        <div style="
+                            min-height:100vh;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            font-family:Arial,sans-serif;
+                            background:#f4f6f8;
+                        ">
+                            <div style="
+                                background:white;
+                                padding:30px;
+                                border-radius:14px;
+                                box-shadow:0 10px 30px rgba(0,0,0,.12);
+                                text-align:center;
+                            ">
+                                <h2>Error al iniciar la aplicación</h2>
+                                <p>Actualizá la página e intentá nuevamente.</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        })();
+    </script>
+</head>
+
+<body>
+
+<header class="topbar">
+    <div>
+        <h1>Gestión de Playas</h1>
+        <div class="subtitulo">Unificación y gestión de vehículos</div>
+    </div>
+
+    <div class="version-box">
+        Versión <span id="appVersion">...</span>
+    </div>
+</header>
+
+<main id="app">
+
+    <section id="inicio" class="pantalla">
+
+        <div class="bienvenida">
+            <h2>Gestión de Playas</h2>
+            <p>Seleccioná una operación para comenzar.</p>
+        </div>
+
+        <div class="menu-principal">
+
+            <button class="menu-card" id="btnUnificador">
+                <div class="menu-icon">📊</div>
+                <div class="menu-title">Unificar planillas</div>
+                <div class="menu-description">
+                    Cargar uno o varios archivos Excel, unificarlos y detectar inconsistencias.
+                </div>
+            </button>
+
+            <button class="menu-card disabled-card" id="btnGestion" disabled>
+                <div class="menu-icon">🚗</div>
+                <div class="menu-title">Gestión de vehículos</div>
+                <div class="menu-description">
+                    Se habilitará después de generar la planilla unificada.
+                </div>
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <section id="moduloUnificador" class="pantalla oculto">
+
+        <div class="modulo-header">
+
+            <button class="btn-secundario" id="btnVolverInicio">
+                ← Inicio
+            </button>
+
+            <div>
+                <h2>Unificar planillas</h2>
+                <p>Cargá uno o varios archivos Excel.</p>
+            </div>
+
+        </div>
+
+
+        <div class="drop-zone" id="dropZone">
+
+            <input
+                type="file"
+                id="fileInput"
+                accept=".xlsx,.xls,.csv"
+                multiple
+                hidden
+            >
+
+            <div class="drop-icon">📁</div>
+
+            <h3>Arrastrá los archivos Excel aquí</h3>
+
+            <p>o</p>
+
+            <button class="btn-principal" id="btnSeleccionarArchivos">
+                Seleccionar archivos
+            </button>
+
+            <div class="drop-info">
+                Se pueden seleccionar uno o varios archivos.
+            </div>
+
+        </div>
+
+
+        <div id="archivosSeleccionados" class="archivos-container oculto">
+
+            <div class="seccion-titulo">
+                <h3>Archivos seleccionados</h3>
+
+                <button class="btn-texto" id="btnLimpiarArchivos">
+                    Limpiar
+                </button>
+            </div>
+
+            <div id="listaArchivos"></div>
+
+        </div>
+
+
+        <div id="accionesUnificador" class="acciones oculto">
+
+            <button class="btn-principal grande" id="btnUnificar">
+                Unificar y procesar
+            </button>
+
+        </div>
+
+
+        <div id="procesando" class="procesando oculto">
+
+            <div class="spinner"></div>
+
+            <div>
+                <strong>Procesando archivos...</strong>
+                <span id="textoProceso">Leyendo planillas</span>
+            </div>
+
+        </div>
+
+
+        <div id="resultado" class="resultado oculto">
+
+            <div class="resultado-header">
+                <div>
+                    <h2>Planilla procesada</h2>
+                    <p id="resumenResultado"></p>
+                </div>
+
+                <div id="resultadoEstado" class="estado-ok">
+                    OK
+                </div>
+            </div>
+
+
+            <div class="estadisticas">
+
+                <div class="stat-card">
+                    <span class="stat-label">Vehículos</span>
+                    <strong id="statVehiculos">0</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">Filas procesadas</span>
+                    <strong id="statFilas">0</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">Conflictos</span>
+                    <strong id="statConflictos">0</strong>
+                </div>
+
+            </div>
+
+
+            <div id="alertaConflictos" class="alerta-conflictos oculto">
+                <strong>⚠ Se detectaron inconsistencias.</strong>
+                <span>
+                    Revisá las filas marcadas antes de utilizar la planilla.
+                </span>
+            </div>
+
+
+            <div class="resultado-acciones">
+
+                <button class="btn-principal" id="btnDescargarExcel">
+                    ⬇ Descargar Excel unificado
+                </button>
+
+                <button class="btn-secundario" id="btnAbrirGestion">
+                    Continuar en WebApp
+                </button>
+
+            </div>
+
+
+            <div class="tabla-container">
+
+                <table id="tablaResultado">
+
+                    <thead>
+                        <tr>
+                            <th>Numero de Chasis</th>
+                            <th>Playa</th>
+                            <th>Bloque</th>
+                            <th>Carril</th>
+                            <th>Posicion</th>
+                            <th>Ubicacion</th>
+                            <th>Codigo de Barras</th>
+                            <th>Observacion</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tablaResultadoBody"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<div id="toast" class="toast oculto"></div>
+
+<script>
+    window.addEventListener("DOMContentLoaded", function () {
+
+        setTimeout(function () {
+
+            if (window.APP_VERSION) {
+                document.getElementById("appVersion").textContent =
+                    window.APP_VERSION;
+            }
+
+        }, 100);
+
+    });
+</script>
+
+</body>
+</html>

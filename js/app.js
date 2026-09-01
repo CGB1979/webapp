@@ -6,21 +6,72 @@ import { exportExcel } from "./modules/exporter.js";
 const $=id=>document.getElementById(id);
 let rows=[], hidden=new Set(), currentIndex=-1, files=[];
 
+const DATA_KEY="gestion-playas-working-data";
+const HIDDEN_KEY="gestion-playas-hidden-data";
+
+function saveWorkingState(){
+  try{
+    localStorage.setItem(DATA_KEY,JSON.stringify(rows));
+    localStorage.setItem(HIDDEN_KEY,JSON.stringify([...hidden]));
+  }catch(err){
+    console.warn("No se pudo guardar el avance local:",err);
+  }
+}
+
+function restoreWorkingState(){
+  try{
+    const saved=localStorage.getItem(DATA_KEY);
+    if(!saved) return false;
+
+    const parsed=JSON.parse(saved);
+    if(!Array.isArray(parsed) || !parsed.length) return false;
+
+    rows=parsed;
+    const savedHidden=JSON.parse(localStorage.getItem(HIDDEN_KEY)||"[]");
+    hidden=new Set(Array.isArray(savedHidden) ? savedHidden : []);
+
+    $("dropzone").classList.add("hidden");
+    $("workspace").classList.remove("hidden");
+    $("btnBarcode").disabled=false;
+    $("btnDownload").disabled=false;
+
+    populateFilters();
+    render();
+    return true;
+  }catch(err){
+    console.warn("No se pudo recuperar el trabajo anterior:",err);
+    return false;
+  }
+}
+
 $("version").textContent=`Versión ${window.APP_VERSION}`;
 
 async function cacheBust(){
   const key="gestion-playas-version";
   const old=localStorage.getItem(key);
-  if(old!==window.APP_VERSION){
-    localStorage.setItem(key,window.APP_VERSION);
-    if("caches" in window){
-      try{
-        for(const k of await caches.keys()) await caches.delete(k);
-      }catch(_){}
-    }
+
+  if(old===window.APP_VERSION) return;
+
+  // NO borrar localStorage: allí está el Excel unificado y el avance de trabajo.
+  // Solo eliminamos Cache Storage y luego recargamos esta misma página con
+  // un parámetro de versión para obligar al navegador a pedir los módulos nuevos.
+  if("caches" in window){
+    try{
+      const cacheNames=await caches.keys();
+      await Promise.all(cacheNames.map(name=>caches.delete(name)));
+    }catch(_){}
   }
+
+  localStorage.setItem(key,window.APP_VERSION);
+
+  const url=new URL(window.location.href);
+  url.searchParams.set("appv",window.APP_VERSION);
+  url.searchParams.set("_",Date.now().toString());
+
+  // Evita ejecutar módulos de una versión anterior que haya quedado en memoria.
+  window.location.replace(url.toString());
 }
-cacheBust();
+cacheBust().then(()=>restoreWorkingState());
 
 $("btnSelect").onclick=()=>$("fileInput").click();
 $("fileInput").onchange=e=>setFiles([...e.target.files]);
@@ -78,6 +129,7 @@ async function unify(){
 
     rows=validate(all);
     hidden.clear();
+    saveWorkingState();
 
     $("dropzone").classList.add("hidden");
     $("workspace").classList.remove("hidden");
@@ -222,6 +274,8 @@ function actOnCurrent(action){
         .filter(i=>i!==old)
     );
   }
+
+  saveWorkingState();
 
   const next=filtered();
   render();

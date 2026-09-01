@@ -86,7 +86,7 @@
   <script>
     (async function(){
       try{
-        const versionUrl="js/version.js?ts="+Date.now();
+        const versionUrl="js/version.js?check="+Date.now();
         const response=await fetch(versionUrl,{cache:"no-store"});
         if(!response.ok) throw new Error("No se pudo comprobar la versión.");
         const source=await response.text();

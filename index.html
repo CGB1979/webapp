@@ -42,7 +42,7 @@
           <select id="filterPlaya"><option value="">Playa: todas</option></select>
           <select id="filterBloque"><option value="">Bloque: todos</option></select>
           <select id="filterEstado"><option value="">Estado: todos</option><option value="OK">OK</option><option value="REVISAR">REVISAR</option></select>
-          <button id="btnShowHidden">Mostrar ocultos</button>
+          <button id="btnShowHidden">Mostrar ocultos</button><button id="btnClearAll" class="danger-outline">Borrar Todo</button>
         </div>
       </div>
 
@@ -81,7 +81,6 @@
     </article>
   </div>
 
-
   <div id="clearAllOverlay" class="overlay hidden">
     <article class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="clearAllTitle">
       <div class="confirm-icon">!</div>
@@ -115,7 +114,7 @@
 
         load("link",{rel:"stylesheet",href:"css/estilos.css?v="+encodeURIComponent(window.APP_VERSION)});
         const xlsx=document.createElement("script");
-        xlsx.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+        xlsx.src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js";
         const barcode=document.createElement("script");
         barcode.src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js";
 

@@ -16,8 +16,8 @@ La exportación utiliza SheetJS CE desde CDN. Esta versión genera el XLSX y una
 Versión actual: 1.0.1
 
 
-Versión actual: 1.0.4
+Versión actual: 1.0.5
 Actualización automática: al detectar una nueva versión se limpia Cache Storage y se recarga con un parámetro de versión. El trabajo local (Excel unificado, ocultos y avance) permanece en localStorage.
 
 
-Versión 1.0.4: botón Borrar Todo con confirmación y conservación independiente de los archivos originales.
+Versión 1.0.5: validación por ubicación exacta, mensajes de conflicto corregidos, Borrar Todo visible, persistencia de planillas y estilos de filas REVISAR en Excel.

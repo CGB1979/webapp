@@ -308,14 +308,13 @@ function actOnCurrent(action){
 function confirmClearAll(){
   if(!rows.length) return;
 
-  const count=sourceFileNames.length;
+  const count=sourceFileNames.length || 1;
   const noun=count===1 ? "planilla" : "planillas";
-  const verb=count===1 ? "cargada" : "cargadas";
+  const article=count===1 ? "la última planilla cargada" : "las últimas planillas cargadas";
 
   $("clearAllText").textContent=
-    `Vas a borrar todos los avances realizados sobre la última ${noun} ${verb}. `+
-    `Esto eliminará los vehículos ocultos, el progreso de revisión y los datos `+
-    `guardados localmente de ${count===1 ? "esa planilla" : "esas planillas"}. `+
+    `Vas a borrar todos los avances realizados sobre ${article}. `+
+    `Se eliminarán los vehículos cargados, los ocultos y el progreso guardado localmente. `+
     `Los archivos originales de tu computadora no se eliminarán.`;
 
   $("clearAllOverlay").classList.remove("hidden");

@@ -1,3 +1,4 @@
+import { barcodeDataUrl } from "./barcode.js";
 function downloadBuffer(buffer,filename){
   const blob=new Blob([buffer],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
   const url=URL.createObjectURL(blob);
@@ -11,8 +12,8 @@ function downloadBuffer(buffer,filename){
 }
 
 function styleHeader(cell){
-  cell.font={bold:true,color:{argb:"FF111827"}};
-  cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFE5E7EB"}};
+  cell.font={bold:true,color:{argb:"FFFFFFFF"}}; // Texto blanco
+  cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF5f9a3d"}}; // Fondo oscuro (gris-negro)
   cell.alignment={horizontal:"center",vertical:"middle"};
   cell.border={bottom:{style:"thin",color:{argb:"FF9CA3AF"}}};
 }
@@ -44,6 +45,7 @@ export async function exportExcel(rows){
   ws.addRow(["Numero de Chasis","Playa","Bloque","Carril","Posicion","Ubicacion","Codigo de Barras","Observacion","Estado"]);
   ws.getRow(1).height=24;
   ws.getRow(1).eachCell(styleHeader);
+  ws.getRow(1).height=33;
 
   rows.forEach(r=>{
     const row=ws.addRow([String(r.chasis??""),r.playa,r.bloque,r.carril,r.posicion,r.ubicacion,"",r.observacion||"",r.estado]);
@@ -72,24 +74,6 @@ export async function exportExcel(rows){
   ws.columns=[
     {width:24},{width:10},{width:11},{width:10},{width:10},{width:20},{width:40},{width:45},{width:12}
   ];
-
-  const wb2=wb.addWorksheet("Codigos de Barras");
-  wb2.views=[{state:"frozen",ySplit:1}];
-  wb2.addRow(["Numero de Chasis","Codigo de Barras"]);
-  wb2.getRow(1).height=24;
-  wb2.getRow(1).eachCell(styleHeader);
-  wb2.columns=[{width:24},{width:38}];
-
-  rows.forEach(r=>{
-    const row=wb2.addRow([String(r.chasis??""),String(r.chasis??"")]);
-    row.height=24;
-    row.getCell(2).alignment={horizontal:"center",vertical:"middle"};
-    if(r.estado==="REVISAR"){
-      row.eachCell(styleReview);
-      const notes=(r._conflicts||[]).map(c=>c.text).join("\n");
-      row.eachCell(cell=>addNote(cell,notes));
-    }
-  });
 
   const buffer=await wb.xlsx.writeBuffer();
   downloadBuffer(buffer,"gestion_playas_unificada.xlsx");

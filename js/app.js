@@ -4,7 +4,7 @@ import { barcodeSvg } from "./modules/barcode.js";
 import { exportExcel } from "./modules/exporter.js";
 
 const $=id=>document.getElementById(id);
-let rows=[], hidden=new Set(), currentIndex=-1, files=[], sourceFileNames=[];
+let rows=[], hidden=new Set(), currentIndex=-1, files=[], sourceFileNames=[], showHidden=false;
 
 const DATA_KEY="gestion-playas-working-data";
 const HIDDEN_KEY="gestion-playas-hidden-data";
@@ -105,8 +105,8 @@ $("filterPlaya").onchange=render;
 $("filterBloque").onchange=render;
 $("filterEstado").onchange=render;
 $("btnShowHidden").onclick=()=>{
-  hidden.clear();
-  saveWorkingState();
+  showHidden=!showHidden;
+  $("btnShowHidden").textContent=showHidden ? "Volver a ocultar" : "Mostrar ocultos";
   render();
 };
 
@@ -119,7 +119,6 @@ $("clearAllOverlay").onclick=e=>{
 
 $("cardClose").onclick=closeCard;
 $("cardHide").onclick=()=>actOnCurrent("hide");
-$("cardDelete").onclick=()=>actOnCurrent("delete");
 $("cardPrev").onclick=()=>openCard(nextVisibleIndex(-1));
 $("cardNext").onclick=()=>openCard(nextVisibleIndex(1));
 $("cardOverlay").onclick=e=>{
@@ -182,18 +181,30 @@ function filtered(){
   const e=$("filterEstado").value;
 
   const data=rows.map((r,i)=>({...r,_i:i})).filter(r=>
-    !hidden.has(r._i) &&
+    (showHidden || !hidden.has(r._i)) &&
     (!q||String(r.chasis).toLowerCase().includes(q)) &&
     (!p||r.playa===p) &&
     (!b||r.bloque===b) &&
     (!e||r.estado===e)
   );
 
-  // Los conflictos quedan agrupados por sus relaciones; los OK conservan su orden.
+  // Orden de ubicación: Playa > Bloque > Carril > Posición.
+  // La comparación es natural: "2" va antes de "10".
+  const naturalCompare=(a,b)=>{
+    const aa=String(a??"").trim();
+    const bb=String(b??"").trim();
+    const an=Number(aa), bn=Number(bb);
+    if(aa!=="" && bb!=="" && Number.isFinite(an) && Number.isFinite(bn)){
+      return an-bn;
+    }
+    return aa.localeCompare(bb,undefined,{numeric:true,sensitivity:"base"});
+  };
+
   return data.sort((a,b)=>{
-    const ga=a._groupId||Number.MAX_SAFE_INTEGER;
-    const gb=b._groupId||Number.MAX_SAFE_INTEGER;
-    if(ga!==gb) return ga-gb;
+    for(const key of ["playa","bloque","carril","posicion"]){
+      const cmp=naturalCompare(a[key],b[key]);
+      if(cmp!==0) return cmp;
+    }
     return a._i-b._i;
   });
 }

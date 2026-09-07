@@ -201,6 +201,13 @@ function filtered(){
   };
 
   return data.sort((a,b)=>{
+    // Mantener la lógica histórica: los conflictos se agrupan primero.
+    // Dentro de cada grupo, y entre los registros normales, se aplica el
+    // nuevo orden ascendente de Playa > Bloque > Carril > Posición.
+    const ga=a._groupId ? Number(a._groupId) : Number.MAX_SAFE_INTEGER;
+    const gb=b._groupId ? Number(b._groupId) : Number.MAX_SAFE_INTEGER;
+    if(ga!==gb) return ga-gb;
+
     for(const key of ["playa","bloque","carril","posicion"]){
       const cmp=naturalCompare(a[key],b[key]);
       if(cmp!==0) return cmp;

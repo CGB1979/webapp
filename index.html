@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#111827">
+  <meta name="description" content="Gestión y control de vehículos en playas">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
   <title>Gestión de Playas</title>
 </head>
 <body>
@@ -148,6 +151,13 @@
         alert(err.message||"No se pudo cargar Gestión de Playas.");
       }
     })();
+  </script>
+  <script>
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(err => console.warn("No se pudo registrar el Service Worker:", err));
+      });
+    }
   </script>
 </body>
 </html>

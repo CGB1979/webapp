@@ -1,23 +1,17 @@
 # Gestión de Playas
 
-WebApp estática para GitHub Pages.
+WebApp estática para GitHub Pages y servidores HTTPS.
 
 ## Inicio
-Abrir `index.html` mediante GitHub Pages o un servidor estático.
+Abrir `index.html` mediante GitHub Pages o un servidor estático HTTPS.
+
+## Instalación como aplicación
+La app incluye manifest PWA, iconos y Service Worker. En Chrome/Edge, una vez publicada en HTTPS, debería aparecer la opción **Instalar aplicación** en el menú del navegador o el icono de instalación de la barra de direcciones. Si se abre directamente como `file://`, no se puede instalar como PWA.
 
 ## Versión
 La versión está en `js/version.js`. Incrementarla en cada publicación.
 
 ## Importante
-La aplicación procesa los Excel en el navegador. No requiere backend.
+La aplicación procesa los Excel en el navegador. No requiere backend. Las librerías de Excel y códigos de barras se cargan desde CDN, por lo que la instalación PWA no implica que esas librerías externas queden disponibles sin conexión.
 
-La exportación utiliza SheetJS CE desde CDN. Esta versión genera el XLSX y una hoja adicional de códigos. La incrustación de imágenes de código de barras dentro de celdas XLSX requiere una etapa de generación XLSX con soporte de imágenes (por ejemplo, una biblioteca/build que soporte imágenes), que debe sustituirse antes de considerar ese requisito cerrado.
-
-Versión actual: 1.0.1
-
-
-Versión actual: 1.0.6
-Actualización automática: al detectar una nueva versión se limpia Cache Storage y se recarga con un parámetro de versión. El trabajo local (Excel unificado, ocultos y avance) permanece en localStorage.
-
-
-Versión 1.0.6: validación por ubicación exacta, mensajes de conflicto corregidos, Borrar Todo visible, persistencia de planillas y estilos de filas REVISAR en Excel.
+Versión actual: 1.0.12

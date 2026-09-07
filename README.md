@@ -15,3 +15,10 @@ La versión está en `js/version.js`. Incrementarla en cada publicación.
 La aplicación procesa los Excel en el navegador. No requiere backend. Las librerías de Excel y códigos de barras se cargan desde CDN, por lo que la instalación PWA no implica que esas librerías externas queden disponibles sin conexión.
 
 Versión actual: 1.0.12
+
+
+### PWA v1.0.15
+- Pantalla completa mediante `display: fullscreen`.
+- `display_override` con fallback a `standalone`.
+- Orientación `any` y orientación desbloqueada cuando la API del navegador está disponible.
+- Service Worker actualizado a la misma versión para forzar la renovación de caché.

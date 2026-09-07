@@ -2,7 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#111827">
   <meta name="description" content="Gestión y control de vehículos en playas">
   <link rel="manifest" href="manifest.webmanifest">
@@ -151,6 +154,16 @@
         alert(err.message||"No se pudo cargar Gestión de Playas.");
       }
     })();
+  </script>
+  <script>
+    // El manifest permite cualquier orientación. Si el navegador expone
+    // Screen Orientation API, dejamos la orientación desbloqueada para que
+    // la interfaz siga el giro físico del dispositivo.
+    try {
+      if (screen.orientation && typeof screen.orientation.unlock === "function") {
+        screen.orientation.unlock();
+      }
+    } catch (_) {}
   </script>
   <script>
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {

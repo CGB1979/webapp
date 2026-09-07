@@ -22,3 +22,19 @@ tr.conflict{background:#fff}
 .card-conflicts{margin:14px auto 4px;text-align:left;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;background:#f8fafc}
 .conflict-title{font-weight:800;color:#92400e;margin-bottom:7px}
 .conflict-item{font-size:13px;color:#374151;line-height:1.45;padding:3px 0}
+
+/* PWA v1.0.15: aprovechar toda la pantalla y respetar notch/safe areas. */
+html, body { min-height: 100%; }
+body {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .topbar { padding-top: 8px; padding-bottom: 8px; }
+  .topbar h1 { font-size: 18px; }
+  main { padding: 12px; }
+  .table-wrap { max-height: calc(100dvh - 150px); }
+}

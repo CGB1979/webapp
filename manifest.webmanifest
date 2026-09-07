@@ -4,12 +4,22 @@
   "description": "Gestión y control de vehículos en playas",
   "start_url": "./",
   "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait-primary",
+  "display": "fullscreen",
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#111827",
   "icons": [
-    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

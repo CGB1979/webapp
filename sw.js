@@ -1,4 +1,4 @@
-const CACHE = "gestion-playas-1.0.15";
+const CACHE = "gestion-playas-1.0.16";
 const APP_SHELL = [
   "./",
   "./index.html",

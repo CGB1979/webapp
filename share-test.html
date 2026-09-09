@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Share Target Test — Gestión Playas</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;max-width:720px;margin:32px auto;padding:16px}
+    .card{border:1px solid #ddd;padding:16px;border-radius:8px}
+    label{display:block;margin:8px 0}
+    button{margin-top:12px}
+  </style>
+</head>
+<body>
+  <h1>Share Target Test</h1>
+  <p>Usá este formulario para simular que otra aplicación comparte un archivo con la PWA. Seleccioná un archivo .xlsx/.xls/.xlsm/.csv y pulsá <b>Enviar</b>. Si el Service Worker y el share_target están funcionando, la PWA debería recibir el archivo automáticamente.</p>
+
+  <div class="card">
+    <form action="./share-target" method="POST" enctype="multipart/form-data">
+      <label>Archivo: <input type="file" name="files" accept=".xlsx,.xls,.xlsm,.csv" required></label>
+      <button type="submit">Enviar a /share-target</button>
+    </form>
+  </div>
+
+  <hr>
+  <p>También podés volver a la <a href="./">app</a>.</p>
+</body>
+</html>

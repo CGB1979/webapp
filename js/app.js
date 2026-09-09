@@ -81,51 +81,37 @@ async function cacheBust(){
 }
 cacheBust().then(()=>restoreWorkingState());
 
-// File Handling: receive files when the OS launches the PWA with files (Android/Chrome)
-if (window.launchQueue && typeof window.launchQueue.setConsumer === 'function') {
-  window.launchQueue.setConsumer(async launchParams => {
-    if (!launchParams || !launchParams.files || !launchParams.files.length) return;
-    try {
-      const received = [];
-      for (const entry of launchParams.files) {
-        // entry can be a File (some browsers) or a FileSystemFileHandle (has getFile)
-        if (entry instanceof File) {
-          received.push(entry);
-        } else if (entry && typeof entry.getFile === 'function') {
-          try {
-            const f = await entry.getFile();
-            // Some handles may be directories or invalid; ensure name/size
-            if (f) received.push(f);
-          } catch (err) {
-            console.warn('No se pudo obtener File desde FileSystemHandle:', err);
-          }
-        } else if (entry && typeof entry.file === 'function') {
-          try {
-            const f = await entry.file();
-            if (f) received.push(f);
-          } catch (err) {
-            console.warn('entry.file() falló:', err);
-          }
+// Recibir archivos enviados por el Service Worker (Share Target)
+// El SW hace target.postMessage({ type: 'share-target', files: [{name,type,buffer}] }, transferList)
+window.addEventListener('message', async (ev) => {
+  try {
+    const msg = ev.data;
+    if (!msg || msg.type !== 'share-target' || !Array.isArray(msg.files)) return;
+
+    // Reconstruir File objects desde los buffers transferidos
+    const reconstructed = msg.files
+      .map(f => {
+        try {
+          // f.buffer es un ArrayBuffer transferido desde el SW
+          const blob = new Blob([f.buffer], { type: f.type || '' });
+          return new File([blob], f.name || 'file', { type: f.type || '' });
+        } catch (err) {
+          console.warn('No se pudo reconstruir archivo compartido:', f, err);
+          return null;
         }
-      }
+      })
+      .filter(Boolean);
 
-      if (!received.length) return;
+    if (!reconstructed.length) return;
 
-      // Filter to supported extensions just like setFiles()
-      const excelFiles = received.filter(f=>/\.(xlsx|xls|csv)$/i.test(f.name));
-      if (!excelFiles.length) return;
-
-      // Reuse existing UI logic: setFiles + unify
-      setFiles(excelFiles);
-      // If app already has working state, we want to replace it with the launched file(s)
-      await unify();
-
-    } catch (err) {
-      console.error('Error al procesar archivos desde launchQueue:', err);
-      try { toast('No se pudo abrir el archivo recibido', true); } catch(_) {}
-    }
-  });
-}
+    // Reutilizar el flujo existente: setFiles + unify
+    setFiles(reconstructed);
+    await unify();
+  } catch (err) {
+    console.error('Error procesando mensaje share-target:', err);
+    try { toast('No se pudo procesar el archivo compartido', true); } catch (_) {}
+  }
+});
 
 $("btnSelect").onclick=()=>$("fileInput").click();
 $("fileInput").onchange=e=>setFiles([...e.target.files]);

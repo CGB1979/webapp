@@ -67,7 +67,7 @@ async function cacheBust(){
     try{
       const cacheNames=await caches.keys();
       await Promise.all(cacheNames.map(name=>caches.delete(name)));
-    }catch(_){}
+    }catch(_){ }
   }
 
   localStorage.setItem(key,window.APP_VERSION);
@@ -80,6 +80,52 @@ async function cacheBust(){
   window.location.replace(url.toString());
 }
 cacheBust().then(()=>restoreWorkingState());
+
+// File Handling: receive files when the OS launches the PWA with files (Android/Chrome)
+if (window.launchQueue && typeof window.launchQueue.setConsumer === 'function') {
+  window.launchQueue.setConsumer(async launchParams => {
+    if (!launchParams || !launchParams.files || !launchParams.files.length) return;
+    try {
+      const received = [];
+      for (const entry of launchParams.files) {
+        // entry can be a File (some browsers) or a FileSystemFileHandle (has getFile)
+        if (entry instanceof File) {
+          received.push(entry);
+        } else if (entry && typeof entry.getFile === 'function') {
+          try {
+            const f = await entry.getFile();
+            // Some handles may be directories or invalid; ensure name/size
+            if (f) received.push(f);
+          } catch (err) {
+            console.warn('No se pudo obtener File desde FileSystemHandle:', err);
+          }
+        } else if (entry && typeof entry.file === 'function') {
+          try {
+            const f = await entry.file();
+            if (f) received.push(f);
+          } catch (err) {
+            console.warn('entry.file() falló:', err);
+          }
+        }
+      }
+
+      if (!received.length) return;
+
+      // Filter to supported extensions just like setFiles()
+      const excelFiles = received.filter(f=>/\.(xlsx|xls|csv)$/i.test(f.name));
+      if (!excelFiles.length) return;
+
+      // Reuse existing UI logic: setFiles + unify
+      setFiles(excelFiles);
+      // If app already has working state, we want to replace it with the launched file(s)
+      await unify();
+
+    } catch (err) {
+      console.error('Error al procesar archivos desde launchQueue:', err);
+      try { toast('No se pudo abrir el archivo recibido', true); } catch(_) {}
+    }
+  });
+}
 
 $("btnSelect").onclick=()=>$("fileInput").click();
 $("fileInput").onchange=e=>setFiles([...e.target.files]);
@@ -374,9 +420,9 @@ function openCard(i){
   currentIndex=i;
   const r=rows[i];
 
-$("cardChassis").textContent=r.chasis;
-$("cardLocation").textContent=r.ubicacion || "Sin ubicación";
-$("cardObservation").textContent=r.observacion||"";
+  $("cardChassis").textContent=r.chasis;
+  $("cardLocation").textContent=r.ubicacion || "Sin ubicación";
+  $("cardObservation").textContent=r.observacion||"";
   renderCardConflicts(r);
 
   const barcodeBox=$("cardBarcode");
@@ -498,11 +544,11 @@ function toast(msg,error=false){
 }
 
 function escapeHtml(s){
-  return String(s??"").replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  return String(s??"").replace(/[&<>\"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
   }[c]));
 }
 
 function escapeAttr(s){
-  return String(s??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return String(s??"").replace(/&/g,"&amp;").replace(/\"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }

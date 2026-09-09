@@ -104,3 +104,38 @@ self.addEventListener('fetch', event => {
     )
   );
 });
+
+// Also accept messages from controlled pages that want to send files directly
+self.addEventListener('message', event => {
+  try {
+    const msg = event.data;
+    if (!msg || msg.type !== 'share-target' || !Array.isArray(msg.files)) return;
+
+    // msg.files: [{name,type,buffer}]
+    (async () => {
+      try {
+        const filesPayload = msg.files.map(f => ({ name: f.name, type: f.type, buffer: f.buffer }));
+        if (!filesPayload.length) return;
+
+        // Prefer the source client if available
+        let target = event.source || (await clients.matchAll({ type: 'window', includeUncontrolled: true }))[0];
+        if (!target) {
+          try {
+            target = await clients.openWindow('./?shared=1');
+          } catch (err) {
+            console.warn('No se pudo abrir ventana cliente desde message handler:', err);
+          }
+        }
+
+        if (target) {
+          const transfer = filesPayload.map(p => p.buffer);
+          target.postMessage({ type: 'share-target', files: filesPayload }, transfer);
+        }
+      } catch (err) {
+        console.error('Error procesando message share-target en SW:', err);
+      }
+    })();
+  } catch (err) {
+    console.error('Error en SW message listener:', err);
+  }
+});
